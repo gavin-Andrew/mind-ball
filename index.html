@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Mind Ball</title>
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .ball {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #7dd3fc, #2563eb);
+      box-shadow: 0 0 30px rgba(37, 99, 235, 0.45);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+      font-family: Arial, sans-serif;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .ball:hover {
+      transform: scale(1.05);
+      transition: 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <div class="ball">Mind Ball</div>
+</body>
+</html>
