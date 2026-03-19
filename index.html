@@ -25,11 +25,31 @@
 
     .container {
       position: relative;
-      width: 360px;
-      height: 220px;
+      width: 380px;
+      height: 260px;
       display: flex;
       align-items: center;
       justify-content: flex-start;
+    }
+
+    .ball-area {
+      width: 160px;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .drag-handle {
+      width: 90px;
+      height: 18px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
+      cursor: move;
+      user-select: none;
     }
 
     .ball {
@@ -38,41 +58,29 @@
       border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #7dd3fc, #2563eb);
       box-shadow: 0 0 25px rgba(37, 99, 235, 0.45);
-
       display: flex;
       justify-content: center;
       align-items: center;
-
       color: white;
       font-size: 20px;
       font-weight: bold;
-
       user-select: none;
       cursor: pointer;
-
-      -webkit-app-region: no-drag;
-      app-region: no-drag;
     }
 
     .panel {
       position: absolute;
       left: 180px;
       top: 20px;
-
-      width: 160px;
-      min-height: 140px;
+      width: 170px;
+      min-height: 190px;
       padding: 12px;
       border-radius: 16px;
-
       background: rgba(255, 255, 255, 0.95);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-
       display: none;
       flex-direction: column;
       gap: 10px;
-
-      -webkit-app-region: no-drag;
-      app-region: no-drag;
     }
 
     .panel.show {
@@ -81,7 +89,7 @@
 
     .panel textarea {
       width: 100%;
-      height: 80px;
+      height: 70px;
       resize: none;
       border: 1px solid #ccc;
       border-radius: 10px;
@@ -110,28 +118,100 @@
       color: #666;
       text-align: center;
     }
+
+    .latest-note {
+      padding: 8px;
+      border-radius: 10px;
+      background: #f3f4f6;
+      font-size: 12px;
+      color: #333;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .latest-note-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #2563eb;
+    }
+
+    .latest-note-time {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #777;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="ball" id="ball">Mind</div>
+    <div class="ball-area">
+      <div class="drag-handle" id="dragHandle" title="按住这里拖动"></div>
+      <div class="ball" id="ball">Mind</div>
+    </div>
 
     <div class="panel" id="panel">
       <textarea id="noteInput" placeholder="写下此刻的想法..."></textarea>
       <button id="saveBtn">保存</button>
       <div class="hint" id="hintText">还没有保存内容</div>
+
+      <div class="latest-note">
+        <div class="latest-note-title">最近一条</div>
+        <div id="latestNoteContent">暂无记录</div>
+        <div class="latest-note-time" id="latestNoteTime"></div>
+      </div>
     </div>
   </div>
 
   <script>
+    const fs = require('fs');
+    const path = require('path');
+    const { ipcRenderer } = require('electron');
+
+    const dragHandle = document.getElementById('dragHandle');
     const ball = document.getElementById('ball');
     const panel = document.getElementById('panel');
     const saveBtn = document.getElementById('saveBtn');
     const noteInput = document.getElementById('noteInput');
     const hintText = document.getElementById('hintText');
+    const latestNoteContent = document.getElementById('latestNoteContent');
+    const latestNoteTime = document.getElementById('latestNoteTime');
+
+    const notesFilePath = path.join(__dirname, 'notes.json');
+
+    let isDragging = false;
+
+    function readNotes() {
+      if (!fs.existsSync(notesFilePath)) {
+        return [];
+      }
+
+      try {
+        const fileContent = fs.readFileSync(notesFilePath, 'utf-8');
+        const notes = JSON.parse(fileContent);
+        return Array.isArray(notes) ? notes : [];
+      } catch (error) {
+        console.error('读取 notes.json 失败：', error);
+        return [];
+      }
+    }
+
+    function updateLatestNoteUI() {
+      const notes = readNotes();
+
+      if (notes.length === 0) {
+        latestNoteContent.textContent = '暂无记录';
+        latestNoteTime.textContent = '';
+        return;
+      }
+
+      const latestNote = notes[notes.length - 1];
+      latestNoteContent.textContent = latestNote.content || '暂无内容';
+      latestNoteTime.textContent = latestNote.time || '';
+    }
 
     ball.addEventListener('click', () => {
       panel.classList.toggle('show');
+      updateLatestNoteUI();
     });
 
     saveBtn.addEventListener('click', () => {
@@ -142,9 +222,58 @@
         return;
       }
 
-      hintText.textContent = '已保存：' + text;
-      noteInput.value = '';
+      const notes = readNotes();
+
+      const newNote = {
+        content: text,
+        time: new Date().toLocaleString()
+      };
+
+      notes.push(newNote);
+
+      try {
+        fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+        hintText.textContent = '已保存到本地';
+        noteInput.value = '';
+        updateLatestNoteUI();
+      } catch (error) {
+        hintText.textContent = '保存失败';
+        console.error('保存失败：', error);
+      }
     });
+
+    dragHandle.addEventListener('mousedown', (event) => {
+      isDragging = true;
+      ipcRenderer.send('drag-start', {
+        screenX: event.screenX,
+        screenY: event.screenY
+      });
+    });
+
+    window.addEventListener('mousemove', (event) => {
+      if (!isDragging) return;
+
+      ipcRenderer.send('drag-move', {
+        screenX: event.screenX,
+        screenY: event.screenY
+      });
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+
+      isDragging = false;
+      ipcRenderer.send('drag-end');
+    });
+
+    window.addEventListener('mouseleave', () => {
+      if (!isDragging) return;
+
+      isDragging = false;
+      ipcRenderer.send('drag-end');
+    });
+
+    updateLatestNoteUI();
   </script>
 </body>
 </html>
