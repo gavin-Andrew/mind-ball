@@ -190,10 +190,15 @@
       font-size: 11px;
       cursor: pointer;
       flex-shrink: 0;
+      min-width: 64px;
     }
 
     .delete-btn:hover {
       opacity: 0.9;
+    }
+
+    .delete-btn.confirming {
+      background: #b91c1c;
     }
   </style>
 </head>
@@ -230,7 +235,35 @@
 
     const notesFilePath = path.join(__dirname, 'notes.json');
 
+    const defaultHintText = '还没有保存内容';
+
     let isDragging = false;
+    let pendingDeleteId = null;
+    let pendingDeleteTimer = null;
+    let hintTimer = null;
+
+    function showHint(message, duration = 2000) {
+      hintText.textContent = message;
+
+      if (hintTimer) {
+        clearTimeout(hintTimer);
+        hintTimer = null;
+      }
+
+      hintTimer = setTimeout(() => {
+        hintText.textContent = defaultHintText;
+        hintTimer = null;
+      }, duration);
+    }
+
+    function resetHint() {
+      if (hintTimer) {
+        clearTimeout(hintTimer);
+        hintTimer = null;
+      }
+
+      hintText.textContent = defaultHintText;
+    }
 
     function readNotes() {
       if (!fs.existsSync(notesFilePath)) {
@@ -296,6 +329,29 @@
       return date.toLocaleString();
     }
 
+    function clearPendingDelete() {
+      pendingDeleteId = null;
+
+      if (pendingDeleteTimer) {
+        clearTimeout(pendingDeleteTimer);
+        pendingDeleteTimer = null;
+      }
+    }
+
+    function startDeleteConfirm(noteId) {
+      clearPendingDelete();
+      pendingDeleteId = noteId;
+
+      pendingDeleteTimer = setTimeout(() => {
+        pendingDeleteId = null;
+        pendingDeleteTimer = null;
+        renderNotes();
+        resetHint();
+      }, 3000);
+
+      renderNotes();
+    }
+
     function renderNotes() {
       const notes = readNotes();
       notesList.innerHTML = '';
@@ -324,10 +380,23 @@
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = '删除';
+
+        const isConfirming = pendingDeleteId === note.id;
+
+        if (isConfirming) {
+          deleteBtn.textContent = '确认删除';
+          deleteBtn.classList.add('confirming');
+        } else {
+          deleteBtn.textContent = '删除';
+        }
 
         deleteBtn.addEventListener('click', () => {
-          deleteNote(note.id);
+          if (pendingDeleteId === note.id) {
+            deleteNote(note.id);
+          } else {
+            startDeleteConfirm(note.id);
+            showHint('请再次点击以确认删除', 2000);
+          }
         });
 
         footer.appendChild(time);
@@ -344,7 +413,7 @@
       const text = noteInput.value.trim();
 
       if (text === '') {
-        hintText.textContent = '你还没有输入内容';
+        showHint('你还没有输入内容', 2000);
         return;
       }
 
@@ -363,12 +432,13 @@
       const success = writeNotes(notes);
 
       if (success) {
-        hintText.textContent = '已保存到本地';
+        clearPendingDelete();
+        showHint('已保存到本地', 2000);
         noteInput.value = '';
         renderNotes();
         noteInput.focus();
       } else {
-        hintText.textContent = '保存失败';
+        showHint('保存失败', 2000);
       }
     }
 
@@ -378,10 +448,11 @@
       const success = writeNotes(filteredNotes);
 
       if (success) {
-        hintText.textContent = '已删除一条记录';
+        clearPendingDelete();
+        showHint('已删除一条记录', 2000);
         renderNotes();
       } else {
-        hintText.textContent = '删除失败';
+        showHint('删除失败', 2000);
       }
     }
 
