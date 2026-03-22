@@ -265,31 +265,15 @@
       hintText.textContent = defaultHintText;
     }
 
-    function readNotes() {
-      if (!fs.existsSync(notesFilePath)) {
-        return [];
-      }
-
-      try {
-        const fileContent = fs.readFileSync(notesFilePath, 'utf-8');
-        const notes = JSON.parse(fileContent);
-
-        if (!Array.isArray(notes)) {
-          return [];
-        }
-
-        return normalizeNotes(notes);
-      } catch (error) {
-        console.error('读取 notes.json 失败：', error);
-        return [];
-      }
-    }
-
     function normalizeNotes(notes) {
-      return notes.map((note, index) => {
+      let hasLegacyNote = false;
+
+      const normalizedNotes = notes.map((note, index) => {
         if (note.id && note.createdAt && note.updatedAt) {
           return note;
         }
+
+        hasLegacyNote = true;
 
         let oldTime = new Date().toISOString();
 
@@ -307,6 +291,11 @@
           updatedAt: oldTime
         };
       });
+
+      return {
+        normalizedNotes,
+        hasLegacyNote
+      };
     }
 
     function writeNotes(notes) {
@@ -316,6 +305,32 @@
       } catch (error) {
         console.error('写入 notes.json 失败：', error);
         return false;
+      }
+    }
+
+    function readNotes() {
+      if (!fs.existsSync(notesFilePath)) {
+        return [];
+      }
+
+      try {
+        const fileContent = fs.readFileSync(notesFilePath, 'utf-8');
+        const notes = JSON.parse(fileContent);
+
+        if (!Array.isArray(notes)) {
+          return [];
+        }
+
+        const result = normalizeNotes(notes);
+
+        if (result.hasLegacyNote) {
+          writeNotes(result.normalizedNotes);
+        }
+
+        return result.normalizedNotes;
+      } catch (error) {
+        console.error('读取 notes.json 失败：', error);
+        return [];
       }
     }
 
