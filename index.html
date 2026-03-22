@@ -7,8 +7,10 @@
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
   />
   <title>Mind Ball</title>
+
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       width: 100%;
       height: 100%;
@@ -25,8 +27,8 @@
 
     .container {
       position: relative;
-      width: 380px;
-      height: 260px;
+      width: 430px;
+      height: 320px;
       display: flex;
       align-items: center;
       justify-content: flex-start;
@@ -34,7 +36,7 @@
 
     .ball-area {
       width: 160px;
-      height: 200px;
+      height: 220px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -71,12 +73,13 @@
     .panel {
       position: absolute;
       left: 180px;
-      top: 20px;
-      width: 170px;
-      min-height: 190px;
+      top: 10px;
+      width: 220px;
+      min-height: 260px;
+      max-height: 290px;
       padding: 12px;
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.96);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
       display: none;
       flex-direction: column;
@@ -89,14 +92,19 @@
 
     .panel textarea {
       width: 100%;
-      height: 70px;
+      height: 72px;
       resize: none;
-      border: 1px solid #ccc;
+      border: 1px solid #d1d5db;
       border-radius: 10px;
       padding: 8px;
       box-sizing: border-box;
       font-size: 14px;
       outline: none;
+    }
+
+    .panel textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
     }
 
     .panel button {
@@ -114,34 +122,82 @@
     }
 
     .hint {
+      min-height: 18px;
       font-size: 12px;
       color: #666;
       text-align: center;
     }
 
-    .latest-note {
-      padding: 8px;
-      border-radius: 10px;
+    .notes-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #2563eb;
+      margin-top: 2px;
+    }
+
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 130px;
+      padding-right: 2px;
+    }
+
+    .empty-text {
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .note-item {
       background: #f3f4f6;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .note-content {
       font-size: 12px;
       color: #333;
       line-height: 1.5;
       word-break: break-word;
+      white-space: pre-wrap;
     }
 
-    .latest-note-title {
-      font-weight: bold;
-      margin-bottom: 4px;
-      color: #2563eb;
+    .note-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
-    .latest-note-time {
-      margin-top: 6px;
+    .note-time {
       font-size: 11px;
       color: #777;
+      flex: 1;
+    }
+
+    .delete-btn {
+      border: none;
+      background: #ef4444;
+      color: white;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .delete-btn:hover {
+      opacity: 0.9;
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="ball-area">
@@ -154,11 +210,8 @@
       <button id="saveBtn">保存</button>
       <div class="hint" id="hintText">还没有保存内容</div>
 
-      <div class="latest-note">
-        <div class="latest-note-title">最近一条</div>
-        <div id="latestNoteContent">暂无记录</div>
-        <div class="latest-note-time" id="latestNoteTime"></div>
-      </div>
+      <div class="notes-title">历史记录</div>
+      <div class="notes-list" id="notesList"></div>
     </div>
   </div>
 
@@ -173,8 +226,7 @@
     const saveBtn = document.getElementById('saveBtn');
     const noteInput = document.getElementById('noteInput');
     const hintText = document.getElementById('hintText');
-    const latestNoteContent = document.getElementById('latestNoteContent');
-    const latestNoteTime = document.getElementById('latestNoteTime');
+    const notesList = document.getElementById('notesList');
 
     const notesFilePath = path.join(__dirname, 'notes.json');
 
@@ -188,33 +240,107 @@
       try {
         const fileContent = fs.readFileSync(notesFilePath, 'utf-8');
         const notes = JSON.parse(fileContent);
-        return Array.isArray(notes) ? notes : [];
+
+        if (!Array.isArray(notes)) {
+          return [];
+        }
+
+        return normalizeNotes(notes);
       } catch (error) {
         console.error('读取 notes.json 失败：', error);
         return [];
       }
     }
 
-    function updateLatestNoteUI() {
+    function normalizeNotes(notes) {
+      return notes.map((note, index) => {
+        if (note.id && note.createdAt && note.updatedAt) {
+          return note;
+        }
+
+        let oldTime = new Date().toISOString();
+
+        if (note.time) {
+          const parsedTime = new Date(note.time);
+          if (!Number.isNaN(parsedTime.getTime())) {
+            oldTime = parsedTime.toISOString();
+          }
+        }
+
+        return {
+          id: `old_note_${index}_${Date.now()}`,
+          content: note.content || '',
+          createdAt: oldTime,
+          updatedAt: oldTime
+        };
+      });
+    }
+
+    function writeNotes(notes) {
+      try {
+        fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+        return true;
+      } catch (error) {
+        console.error('写入 notes.json 失败：', error);
+        return false;
+      }
+    }
+
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+
+      if (Number.isNaN(date.getTime())) {
+        return '时间未知';
+      }
+
+      return date.toLocaleString();
+    }
+
+    function renderNotes() {
       const notes = readNotes();
+      notesList.innerHTML = '';
 
       if (notes.length === 0) {
-        latestNoteContent.textContent = '暂无记录';
-        latestNoteTime.textContent = '';
+        notesList.innerHTML = '<div class="empty-text">暂无记录</div>';
         return;
       }
 
-      const latestNote = notes[notes.length - 1];
-      latestNoteContent.textContent = latestNote.content || '暂无内容';
-      latestNoteTime.textContent = latestNote.time || '';
+      const reversedNotes = [...notes].reverse();
+
+      reversedNotes.forEach((note) => {
+        const item = document.createElement('div');
+        item.className = 'note-item';
+
+        const content = document.createElement('div');
+        content.className = 'note-content';
+        content.textContent = note.content || '暂无内容';
+
+        const footer = document.createElement('div');
+        footer.className = 'note-footer';
+
+        const time = document.createElement('span');
+        time.className = 'note-time';
+        time.textContent = formatTime(note.createdAt);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = '删除';
+
+        deleteBtn.addEventListener('click', () => {
+          deleteNote(note.id);
+        });
+
+        footer.appendChild(time);
+        footer.appendChild(deleteBtn);
+
+        item.appendChild(content);
+        item.appendChild(footer);
+
+        notesList.appendChild(item);
+      });
     }
 
-    ball.addEventListener('click', () => {
-      panel.classList.toggle('show');
-      updateLatestNoteUI();
-    });
-
-    saveBtn.addEventListener('click', () => {
+    function saveNote() {
       const text = noteInput.value.trim();
 
       if (text === '') {
@@ -223,22 +349,61 @@
       }
 
       const notes = readNotes();
+      const now = new Date().toISOString();
 
       const newNote = {
+        id: `note_${Date.now()}`,
         content: text,
-        time: new Date().toLocaleString()
+        createdAt: now,
+        updatedAt: now
       };
 
       notes.push(newNote);
 
-      try {
-        fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+      const success = writeNotes(notes);
+
+      if (success) {
         hintText.textContent = '已保存到本地';
         noteInput.value = '';
-        updateLatestNoteUI();
-      } catch (error) {
+        renderNotes();
+        noteInput.focus();
+      } else {
         hintText.textContent = '保存失败';
-        console.error('保存失败：', error);
+      }
+    }
+
+    function deleteNote(noteId) {
+      const notes = readNotes();
+      const filteredNotes = notes.filter((note) => note.id !== noteId);
+      const success = writeNotes(filteredNotes);
+
+      if (success) {
+        hintText.textContent = '已删除一条记录';
+        renderNotes();
+      } else {
+        hintText.textContent = '删除失败';
+      }
+    }
+
+    ball.addEventListener('click', () => {
+      panel.classList.toggle('show');
+
+      if (panel.classList.contains('show')) {
+        renderNotes();
+        noteInput.focus();
+      }
+    });
+
+    saveBtn.addEventListener('click', () => {
+      saveNote();
+    });
+
+    noteInput.addEventListener('keydown', (event) => {
+      const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key === 'Enter';
+
+      if (isSaveShortcut) {
+        event.preventDefault();
+        saveNote();
       }
     });
 
@@ -251,7 +416,9 @@
     });
 
     window.addEventListener('mousemove', (event) => {
-      if (!isDragging) return;
+      if (!isDragging) {
+        return;
+      }
 
       ipcRenderer.send('drag-move', {
         screenX: event.screenX,
@@ -260,20 +427,24 @@
     });
 
     window.addEventListener('mouseup', () => {
-      if (!isDragging) return;
+      if (!isDragging) {
+        return;
+      }
 
       isDragging = false;
       ipcRenderer.send('drag-end');
     });
 
     window.addEventListener('mouseleave', () => {
-      if (!isDragging) return;
+      if (!isDragging) {
+        return;
+      }
 
       isDragging = false;
       ipcRenderer.send('drag-end');
     });
 
-    updateLatestNoteUI();
+    renderNotes();
   </script>
 </body>
 </html>
