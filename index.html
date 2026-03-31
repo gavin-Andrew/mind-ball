@@ -27,8 +27,8 @@
 
     .container {
       position: relative;
-      width: 430px;
-      height: 320px;
+      width: 470px;
+      height: 350px;
       display: flex;
       align-items: center;
       justify-content: flex-start;
@@ -36,7 +36,7 @@
 
     .ball-area {
       width: 160px;
-      height: 220px;
+      height: 240px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -52,6 +52,12 @@
       box-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
       cursor: move;
       user-select: none;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .drag-handle:hover {
+      transform: scale(1.04);
+      opacity: 0.95;
     }
 
     .ball {
@@ -68,31 +74,43 @@
       font-weight: bold;
       user-select: none;
       cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .ball:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 30px rgba(37, 99, 235, 0.55);
     }
 
     .panel {
       position: absolute;
       left: 180px;
-      top: 10px;
-      width: 220px;
-      min-height: 260px;
-      max-height: 290px;
+      top: 8px;
+      width: 260px;
+      min-height: 300px;
+      max-height: 330px;
       padding: 12px;
-      border-radius: 16px;
+      border-radius: 18px;
       background: rgba(255, 255, 255, 0.96);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-      display: none;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+      display: flex;
       flex-direction: column;
       gap: 10px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
     .panel.show {
-      display: flex;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
     }
 
     .panel textarea {
       width: 100%;
-      height: 72px;
+      height: 78px;
       resize: none;
       border: 1px solid #d1d5db;
       border-radius: 10px;
@@ -100,6 +118,7 @@
       box-sizing: border-box;
       font-size: 14px;
       outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
     .panel textarea:focus {
@@ -107,18 +126,38 @@
       box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
     }
 
+    .action-row {
+      display: flex;
+      gap: 8px;
+    }
+
     .panel button {
       height: 36px;
       border: none;
       border-radius: 10px;
-      background: #2563eb;
       color: white;
       font-size: 14px;
       cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
     }
 
     .panel button:hover {
-      opacity: 0.92;
+      opacity: 0.93;
+      transform: translateY(-1px);
+    }
+
+    .primary-btn {
+      flex: 1;
+      background: #2563eb;
+    }
+
+    .secondary-btn {
+      width: 88px;
+      background: #6b7280;
+    }
+
+    .secondary-btn.hidden {
+      display: none;
     }
 
     .hint {
@@ -140,7 +179,7 @@
       flex-direction: column;
       gap: 8px;
       overflow-y: auto;
-      max-height: 130px;
+      max-height: 152px;
       padding-right: 2px;
     }
 
@@ -153,19 +192,44 @@
 
     .note-item {
       background: #f3f4f6;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 8px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
+      animation: fadeInUp 0.2s ease;
     }
 
     .note-content {
       font-size: 12px;
       color: #333;
-      line-height: 1.5;
+      line-height: 1.55;
       word-break: break-word;
       white-space: pre-wrap;
+    }
+
+    .note-content.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .text-action-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -2px;
+    }
+
+    .text-toggle-btn {
+      border: none;
+      background: transparent;
+      color: #111111 !important;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0;
+      height: auto;
     }
 
     .note-footer {
@@ -173,32 +237,72 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .note-time {
       font-size: 11px;
       color: #777;
       flex: 1;
+      min-width: 120px;
     }
 
-    .delete-btn {
+    .note-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .small-btn {
       border: none;
-      background: #ef4444;
       color: white;
       border-radius: 8px;
       padding: 4px 8px;
       font-size: 11px;
       cursor: pointer;
-      flex-shrink: 0;
-      min-width: 64px;
+      min-width: 54px;
     }
 
-    .delete-btn:hover {
-      opacity: 0.9;
+    .edit-btn {
+      background: #f59e0b;
+    }
+
+    .delete-btn {
+      background: #ef4444;
     }
 
     .delete-btn.confirming {
       background: #b91c1c;
+    }
+
+    .draft-badge {
+      font-size: 11px;
+      color: #2563eb;
+      text-align: center;
+      min-height: 16px;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .notes-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .notes-list::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.7);
+      border-radius: 999px;
+    }
+
+    .notes-list::-webkit-scrollbar-track {
+      background: transparent;
     }
   </style>
 </head>
@@ -212,8 +316,14 @@
 
     <div class="panel" id="panel">
       <textarea id="noteInput" placeholder="写下此刻的想法..."></textarea>
-      <button id="saveBtn">保存</button>
+
+      <div class="action-row">
+        <button id="saveBtn" class="primary-btn">保存</button>
+        <button id="cancelEditBtn" class="secondary-btn hidden">取消编辑</button>
+      </div>
+
       <div class="hint" id="hintText">还没有保存内容</div>
+      <div class="draft-badge" id="draftBadge"></div>
 
       <div class="notes-title">历史记录</div>
       <div class="notes-list" id="notesList"></div>
@@ -229,18 +339,25 @@
     const ball = document.getElementById('ball');
     const panel = document.getElementById('panel');
     const saveBtn = document.getElementById('saveBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
     const noteInput = document.getElementById('noteInput');
     const hintText = document.getElementById('hintText');
+    const draftBadge = document.getElementById('draftBadge');
     const notesList = document.getElementById('notesList');
 
     const notesFilePath = path.join(__dirname, 'notes.json');
+    const draftFilePath = path.join(__dirname, 'draft.json');
 
     const defaultHintText = '还没有保存内容';
+    const expandThreshold = 90;
 
     let isDragging = false;
     let pendingDeleteId = null;
     let pendingDeleteTimer = null;
     let hintTimer = null;
+    let draftTimer = null;
+    let editingNoteId = null;
+    let expandedNoteIds = new Set();
 
     function showHint(message, duration = 2000) {
       hintText.textContent = message;
@@ -298,40 +415,91 @@
       };
     }
 
-    function writeNotes(notes) {
+    function writeJsonFile(filePath, data) {
       try {
-        fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
         return true;
       } catch (error) {
-        console.error('写入 notes.json 失败：', error);
+        console.error(`写入文件失败：${filePath}`, error);
         return false;
       }
     }
 
-    function readNotes() {
-      if (!fs.existsSync(notesFilePath)) {
-        return [];
+    function readJsonFile(filePath, fallbackValue) {
+      if (!fs.existsSync(filePath)) {
+        return fallbackValue;
       }
 
       try {
-        const fileContent = fs.readFileSync(notesFilePath, 'utf-8');
-        const notes = JSON.parse(fileContent);
-
-        if (!Array.isArray(notes)) {
-          return [];
-        }
-
-        const result = normalizeNotes(notes);
-
-        if (result.hasLegacyNote) {
-          writeNotes(result.normalizedNotes);
-        }
-
-        return result.normalizedNotes;
+        const fileContent = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(fileContent);
       } catch (error) {
-        console.error('读取 notes.json 失败：', error);
+        console.error(`读取文件失败：${filePath}`, error);
+        return fallbackValue;
+      }
+    }
+
+    function writeNotes(notes) {
+      return writeJsonFile(notesFilePath, notes);
+    }
+
+    function readNotes() {
+      const notes = readJsonFile(notesFilePath, []);
+
+      if (!Array.isArray(notes)) {
         return [];
       }
+
+      const result = normalizeNotes(notes);
+
+      if (result.hasLegacyNote) {
+        writeNotes(result.normalizedNotes);
+      }
+
+      return result.normalizedNotes;
+    }
+
+    function readDraft() {
+      const draft = readJsonFile(draftFilePath, null);
+
+      if (!draft || typeof draft !== 'object') {
+        return null;
+      }
+
+      if (typeof draft.content !== 'string') {
+        return null;
+      }
+
+      return draft;
+    }
+
+    function saveDraft(content) {
+      const draftData = {
+        content,
+        updatedAt: new Date().toISOString()
+      };
+
+      const success = writeJsonFile(draftFilePath, draftData);
+
+      if (success) {
+        updateDraftBadge('草稿已自动保存');
+      }
+    }
+
+    function clearDraft() {
+      try {
+        if (fs.existsSync(draftFilePath)) {
+          fs.unlinkSync(draftFilePath);
+        }
+      } catch (error) {
+        console.error('删除 draft.json 失败：', error);
+      }
+
+      updateDraftBadge('');
+    }
+
+    function updateDraftBadge(text) {
+      draftBadge.textContent = text || '';
     }
 
     function formatTime(isoString) {
@@ -342,6 +510,17 @@
       }
 
       return date.toLocaleString();
+    }
+
+    function formatNoteTime(note) {
+      const createdText = formatTime(note.createdAt);
+      const updatedText = formatTime(note.updatedAt);
+
+      if (note.createdAt !== note.updatedAt) {
+        return `创建：${createdText} ｜ 更新：${updatedText}`;
+      }
+
+      return `创建：${createdText}`;
     }
 
     function clearPendingDelete() {
@@ -367,6 +546,41 @@
       renderNotes();
     }
 
+    function setEditingMode(note) {
+      editingNoteId = note.id;
+      noteInput.value = note.content || '';
+      saveBtn.textContent = '更新记录';
+      cancelEditBtn.classList.remove('hidden');
+      noteInput.focus();
+      noteInput.setSelectionRange(noteInput.value.length, noteInput.value.length);
+      showHint('正在编辑这条记录', 2000);
+      scheduleDraftSave();
+    }
+
+    function exitEditingMode(clearInput = false) {
+      editingNoteId = null;
+      saveBtn.textContent = '保存';
+      cancelEditBtn.classList.add('hidden');
+
+      if (clearInput) {
+        noteInput.value = '';
+      }
+    }
+
+    function shouldCollapse(content) {
+      return (content || '').length > expandThreshold;
+    }
+
+    function toggleExpand(noteId) {
+      if (expandedNoteIds.has(noteId)) {
+        expandedNoteIds.delete(noteId);
+      } else {
+        expandedNoteIds.add(noteId);
+      }
+
+      renderNotes();
+    }
+
     function renderNotes() {
       const notes = readNotes();
       notesList.innerHTML = '';
@@ -384,17 +598,53 @@
 
         const content = document.createElement('div');
         content.className = 'note-content';
+
+        const isExpanded = expandedNoteIds.has(note.id);
+        const needCollapse = shouldCollapse(note.content || '');
+
+        if (needCollapse && !isExpanded) {
+          content.classList.add('collapsed');
+        }
+
         content.textContent = note.content || '暂无内容';
+        item.appendChild(content);
+
+        if (needCollapse) {
+          const textActionRow = document.createElement('div');
+          textActionRow.className = 'text-action-row';
+
+          const toggleBtn = document.createElement('button');
+          toggleBtn.className = 'text-toggle-btn';
+          toggleBtn.textContent = isExpanded ? '收起' : '展开';
+          toggleBtn.addEventListener('click', () => {
+            toggleExpand(note.id);
+          });
+
+          textActionRow.appendChild(toggleBtn);
+          item.appendChild(textActionRow);
+        }
 
         const footer = document.createElement('div');
         footer.className = 'note-footer';
 
         const time = document.createElement('span');
         time.className = 'note-time';
-        time.textContent = formatTime(note.createdAt);
+        time.textContent = formatNoteTime(note);
+
+        const actions = document.createElement('div');
+        actions.className = 'note-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'small-btn edit-btn';
+        editBtn.textContent = '编辑';
+        editBtn.addEventListener('click', () => {
+          clearPendingDelete();
+          setEditingMode(note);
+          renderNotes();
+        });
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
+        deleteBtn.className = 'small-btn delete-btn';
 
         const isConfirming = pendingDeleteId === note.id;
 
@@ -414,12 +664,13 @@
           }
         });
 
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+
         footer.appendChild(time);
-        footer.appendChild(deleteBtn);
+        footer.appendChild(actions);
 
-        item.appendChild(content);
         item.appendChild(footer);
-
         notesList.appendChild(item);
       });
     }
@@ -435,6 +686,37 @@
       const notes = readNotes();
       const now = new Date().toISOString();
 
+      if (editingNoteId) {
+        const targetIndex = notes.findIndex((note) => note.id === editingNoteId);
+
+        if (targetIndex === -1) {
+          showHint('未找到要编辑的记录', 2000);
+          exitEditingMode(false);
+          return;
+        }
+
+        notes[targetIndex] = {
+          ...notes[targetIndex],
+          content: text,
+          updatedAt: now
+        };
+
+        const success = writeNotes(notes);
+
+        if (success) {
+          clearPendingDelete();
+          clearDraft();
+          exitEditingMode(true);
+          showHint('记录已更新', 2000);
+          renderNotes();
+          noteInput.focus();
+        } else {
+          showHint('更新失败', 2000);
+        }
+
+        return;
+      }
+
       const newNote = {
         id: `note_${Date.now()}`,
         content: text,
@@ -448,6 +730,7 @@
 
       if (success) {
         clearPendingDelete();
+        clearDraft();
         showHint('已保存到本地', 2000);
         noteInput.value = '';
         renderNotes();
@@ -463,7 +746,13 @@
       const success = writeNotes(filteredNotes);
 
       if (success) {
+        if (editingNoteId === noteId) {
+          exitEditingMode(true);
+          clearDraft();
+        }
+
         clearPendingDelete();
+        expandedNoteIds.delete(noteId);
         showHint('已删除一条记录', 2000);
         renderNotes();
       } else {
@@ -471,17 +760,66 @@
       }
     }
 
+    function restoreDraftIfNeeded() {
+      const draft = readDraft();
+
+      if (!draft) {
+        updateDraftBadge('');
+        return;
+      }
+
+      if (typeof draft.content === 'string' && draft.content.trim() !== '') {
+        if (noteInput.value.trim() === '') {
+          noteInput.value = draft.content;
+        }
+
+        updateDraftBadge(`已恢复草稿：${formatTime(draft.updatedAt)}`);
+      } else {
+        updateDraftBadge('');
+      }
+    }
+
+    function scheduleDraftSave() {
+      if (draftTimer) {
+        clearTimeout(draftTimer);
+        draftTimer = null;
+      }
+
+      draftTimer = setTimeout(() => {
+        const content = noteInput.value;
+
+        if (content.trim() === '') {
+          clearDraft();
+        } else {
+          saveDraft(content);
+        }
+
+        draftTimer = null;
+      }, 500);
+    }
+
     ball.addEventListener('click', () => {
       panel.classList.toggle('show');
 
       if (panel.classList.contains('show')) {
         renderNotes();
+        restoreDraftIfNeeded();
         noteInput.focus();
       }
     });
 
     saveBtn.addEventListener('click', () => {
       saveNote();
+    });
+
+    cancelEditBtn.addEventListener('click', () => {
+      exitEditingMode(false);
+      restoreDraftIfNeeded();
+      showHint('已取消编辑', 2000);
+    });
+
+    noteInput.addEventListener('input', () => {
+      scheduleDraftSave();
     });
 
     noteInput.addEventListener('keydown', (event) => {
@@ -531,6 +869,7 @@
     });
 
     renderNotes();
+    restoreDraftIfNeeded();
   </script>
 </body>
 </html>

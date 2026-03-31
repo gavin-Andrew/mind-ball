@@ -4,8 +4,8 @@ let win = null
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 460,
-    height: 340,
+    width: 500,
+    height: 380,
     transparent: true,
     frame: false,
     resizable: false,
