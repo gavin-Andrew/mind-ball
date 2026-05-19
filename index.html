@@ -350,14 +350,60 @@
 
     const defaultHintText = '还没有保存内容';
     const expandThreshold = 90;
+    const autoCloseDelay = 2 * 60 * 1000;
 
     let isDragging = false;
     let pendingDeleteId = null;
     let pendingDeleteTimer = null;
     let hintTimer = null;
     let draftTimer = null;
+    let autoCloseTimer = null;
     let editingNoteId = null;
     let expandedNoteIds = new Set();
+
+    function startAutoCloseTimer() {
+      clearAutoCloseTimer();
+
+      autoCloseTimer = setTimeout(() => {
+        if (!panel.classList.contains('show')) {
+          autoCloseTimer = null;
+          return;
+        }
+
+        closePanel();
+        autoCloseTimer = null;
+      }, autoCloseDelay);
+    }
+
+    function clearAutoCloseTimer() {
+      if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
+      }
+    }
+
+    function resetAutoCloseTimer() {
+      if (!panel.classList.contains('show')) {
+        return;
+      }
+
+      startAutoCloseTimer();
+    }
+
+    function openPanel() {
+      panel.classList.add('show');
+      renderNotes();
+      restoreDraftIfNeeded();
+      noteInput.focus();
+      startAutoCloseTimer();
+    }
+
+    function closePanel() {
+      panel.classList.remove('show');
+      clearPendingDelete();
+      resetHint();
+      clearAutoCloseTimer();
+    }
 
     function showHint(message, duration = 2000) {
       hintText.textContent = message;
@@ -544,6 +590,7 @@
       }, 3000);
 
       renderNotes();
+      resetAutoCloseTimer();
     }
 
     function setEditingMode(note) {
@@ -555,6 +602,7 @@
       noteInput.setSelectionRange(noteInput.value.length, noteInput.value.length);
       showHint('正在编辑这条记录', 2000);
       scheduleDraftSave();
+      resetAutoCloseTimer();
     }
 
     function exitEditingMode(clearInput = false) {
@@ -579,6 +627,7 @@
       }
 
       renderNotes();
+      resetAutoCloseTimer();
     }
 
     function renderNotes() {
@@ -710,6 +759,7 @@
           showHint('记录已更新', 2000);
           renderNotes();
           noteInput.focus();
+          resetAutoCloseTimer();
         } else {
           showHint('更新失败', 2000);
         }
@@ -735,6 +785,7 @@
         noteInput.value = '';
         renderNotes();
         noteInput.focus();
+        resetAutoCloseTimer();
       } else {
         showHint('保存失败', 2000);
       }
@@ -755,6 +806,7 @@
         expandedNoteIds.delete(noteId);
         showHint('已删除一条记录', 2000);
         renderNotes();
+        resetAutoCloseTimer();
       } else {
         showHint('删除失败', 2000);
       }
@@ -798,14 +850,31 @@
       }, 500);
     }
 
-    ball.addEventListener('click', () => {
-      panel.classList.toggle('show');
+    panel.addEventListener('click', (event) => {
+      event.stopPropagation();
+      resetAutoCloseTimer();
+    });
+
+    panel.addEventListener('mousemove', () => {
+      resetAutoCloseTimer();
+    });
+
+    ball.addEventListener('click', (event) => {
+      event.stopPropagation();
 
       if (panel.classList.contains('show')) {
-        renderNotes();
-        restoreDraftIfNeeded();
-        noteInput.focus();
+        closePanel();
+      } else {
+        openPanel();
       }
+    });
+
+    ipcRenderer.on('window-blur', () => {
+      if (!panel.classList.contains('show')) {
+        return;
+      }
+
+      closePanel();
     });
 
     saveBtn.addEventListener('click', () => {
@@ -816,19 +885,40 @@
       exitEditingMode(false);
       restoreDraftIfNeeded();
       showHint('已取消编辑', 2000);
+      resetAutoCloseTimer();
     });
 
     noteInput.addEventListener('input', () => {
       scheduleDraftSave();
+      resetAutoCloseTimer();
     });
 
     noteInput.addEventListener('keydown', (event) => {
+      resetAutoCloseTimer();
+
       const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key === 'Enter';
 
       if (isSaveShortcut) {
         event.preventDefault();
         saveNote();
       }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      if (!panel.classList.contains('show')) {
+        return;
+      }
+
+      event.preventDefault();
+      closePanel();
+    });
+
+    notesList.addEventListener('scroll', () => {
+      resetAutoCloseTimer();
     });
 
     dragHandle.addEventListener('mousedown', (event) => {
